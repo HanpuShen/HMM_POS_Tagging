@@ -15,67 +15,14 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-library(HMM)
-```
-
-```{r}
-library(HMM)
+library(HMMNLP)
 library(NLP)
 ```
 
-Penn_Treebank_POS_tags
-   entry                                  description
-1      $                                       dollar
-2     ``                       opening quotation mark
-3     ''                       closing quotation mark
-4      (                          opening parenthesis
-5      )                          closing parenthesis
-6      ,                                        comma
-7      -                                         dash
-8      .                          sentence terminator
-9      :                            colon or ellipsis
-10    CC                    conjunction, coordinating
-11    CD                            numeral, cardinal
-12    DT                                   determiner
-13    EX                            existential there
-14    FW                                 foreign word
-15    IN    preposition or conjunction, subordinating
-16    JJ                adjective or numeral, ordinal
-17   JJR                       adjective, comparative
-18   JJS                       adjective, superlative
-19    LS                             list item marker
-20    MD                              modal auxiliary
-21    NN               noun, common, singular or mass
-22   NNP                       noun, proper, singular
-23  NNPS                         noun, proper, plural
-24   NNS                         noun, common, plural
-25   PDT                               pre-determiner
-26   POS                              genitive marker
-27   PRP                            pronoun, personal
-28  PRP$                          pronoun, possessive
-29    RB                                       adverb
-30   RBR                          adverb, comparative
-31   RBS                          adverb, superlative
-32    RP                                     particle
-33   SYM                                       symbol
-34    TO     "to" as preposition or infinitive marker
-35    UH                                 interjection
-36    VB                              verb, base form
-37   VBD                             verb, past tense
-38   VBG           verb, present participle or gerund
-39   VBN                        verb, past participle
-40   VBP verb, present tense, not 3rd person singular
-41   VBZ     verb, present tense, 3rd person singular
-42   WDT                                WH-determiner
-43    WP                                   WH-pronoun
-44   WP$                       WH-pronoun, possessive
-45   WRB                                    Wh-adverb
-
-
+## Train and test set splitting
 ```{r}
-POS = list(word = ,tag)
-words <- sapply(POS, function(x) x$word)
-tags <- sapply(POS, function(x) x$tag)
+words <- Penn_TreeBank$words
+tags <- Penn_TreeBank$tags
 
 # Splitting the dataset into training and testing sets
 set.seed(123) # for reproducible results
@@ -88,5 +35,125 @@ train_tags <- tags[train_indices]
 test_words <- words[test_indices]
 test_tags <- tags[test_indices]
 
+```
+
+## Visualize the first 10 sample in the trainset
+```{r}
+print(train_words[1:10])
+print(train_tags[1:10])
+```
+## Visualize the ambiguous
+```{r}
+## Start Here:
+```
+
+## calculate the tag transition count matrix
+```{r}
+tags_level = Penn_Treebank_POS_tags$entry
+# Initialize the transition count matrix
+tag_tcm = matrix(data=0,nrow = length(tags_level), ncol = length(tags_level))
+for(i in 1:(length(train_tags)-1)){
+  idx_current = which(tags_level==train_tags[i])
+  idx_next = which(tags_level==train_tags[i+1])
+  tag_tcm[idx_current,idx_next] = 1+tag_tcm[idx_current,idx_next]
+}
+tag_tcm
+```
+
+## calculate the word emission count matrix
+```{r}
+get_dictionary <-function(words){
+  dictionary = unique(words)
+  return(dictionary)
+}
+
+dictionary = get_dictionary(words)
+word_ecm = matrix(data=0, nrow=length(tags_level), ncol = length(dictionary))
+for(i in 1:length(train_tags)){
+  idx_tag = which(tags_level==train_tags[i])
+  idx_word = which(dictionary==train_words[i])
+  word_ecm[idx_tag,idx_word] = word_ecm[idx_tag,idx_word]+1
+}
+```
+```{r}
+barplot(rowSums(word_ecm),names.arg = tags_level,main = "Prevelency among tags")
+```
+## compute the transition matrix
+$$P(t_i|t_{i-1}) = \frac{c(t_{i-1},t_i)+\alpha}{c(t_{i-1})+\alpha\cdot N}$$
+```{r}
+create_transition_matrix <- function(tcm,alpha){
+  N = ncol(tcm)
+  # Divide each row by the corresponding constant
+  transition_matrix <- sweep(tcm+alpha, 1, rowSums(tcm)+alpha*N, FUN = "/")
+  return(transition_matrix)
+}
+
+T = create_transition_matrix(tag_tcm,0.001)
+## The transition probability of noun after verb
+cat("The transition probability of noun after verb",T[36,21],"\n")
+cat("The transition probability of verb after noun",T[21,36])
+```
+## Compute the emission matrix
+```{r}
+create_emission_matrix <- function(ecm,alpha){
+  N = ncol(ecm)
+  # Divide each row by the corresponding constant
+  emission_matrix <- sweep(ecm+alpha, 1, rowSums(ecm)+alpha*N, FUN = "/")
+  return(emission_matrix)
+}
+E = create_emission_matrix(ecm = word_ecm,alpha = 0.001)
+E[,1]
+```
+## Viterbi forward
+```{r}
+tag2int <- setNames(seq_along(tags_level), tags_level)
+word2int <- setNames(seq_along(dictionary),dictionary)
+
+viterbi <- function(words, tags_level, start_p=rep(1/length(tags_level),length(tags_level)), trans_p, emit_p) {
+  obs = word2int[words]
+  states = tag2int[tags_level]
+  V <- matrix(0, nrow = length(obs), ncol = length(states))
+  path <- matrix(0, nrow = length(obs), ncol = length(states))
+
+  # Initialize base cases (t == 0)
+  for (s in 1:length(states)) {
+    V[1, s] <- start_p[s] * emit_p[s, obs[1]]
+    path[1, s] <- s
+  }
+  
+  # Run Viterbi for t > 0
+  for (t in 2:length(obs)) {
+    newpath <- matrix(0, nrow = length(obs), ncol = length(states))
+    
+    for (s in 1:length(states)) {
+      prob <- V[t - 1, ] * trans_p[, s] * emit_p[s, obs[t]]
+      max_prob <- max(prob)
+      best_state <- which.max(prob)
+      V[t, s] <- max_prob
+      newpath[1:(t-1), s] <- path[1:(t-1), best_state]
+      newpath[t, s] <- s
+    }
+    
+    path <- newpath
+  }
+  
+  # Find the final best path
+  max_prob <- max(V[length(obs), ])
+  best_path <- path[, which.max(V[length(obs), ])]
+  
+  return(list(path = tag2int[best_path], prob = max_prob))
+}
+```
+
+```{r}
+v_forward = viterbi(train_words[1:100],tags_level = tags_level,trans_p = T,emit_p = E)
+v_forward$path
+```
+
+
+## Viterbi backward
+```{r}
+https://github.com/HanpuShen/HMM_SOP_Tagging
+https://github.com/HanpuShen/HMM_POS_tagging
 ```
 

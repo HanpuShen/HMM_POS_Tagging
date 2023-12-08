@@ -17,4 +17,4 @@
 #' - Marcus, Mitchell P., et al. "Building a large annotated corpus of English:
 #'   The Penn Treebank." Computational linguistics 19.2 (1993): 313-330.
 #' - The Penn Treebank: https://www.cis.upenn.edu/~treebank/
-Penn_TreeBank <-Penn_TreeBank
+"Penn_TreeBank"
