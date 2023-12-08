@@ -15,3 +15,7 @@ Using Viterbi Algorithm and Hidden Markov Models to perform part-of-speech (POS)
 -   The **well** is dry. [noun]
 
 -   Tears were beginning to **well** in her eyes. [verb]
+
+Here are some useful resource:
+1. Viterbi algorithm: https://github.com/alejandropuerto/viterbi-HMM-POS-tagging/blob/master/Viterbi_Algorithm.ipynb
+2. Introduction to tagging problem: https://princeton-nlp.github.io/cos484/readings/hmms-spring2013.pdf
