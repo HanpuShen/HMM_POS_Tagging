@@ -1,0 +1,92 @@
+---
+title: "Data_exploration"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Data_exploration}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(HMM)
+```
+
+```{r}
+library(HMM)
+library(NLP)
+```
+
+Penn_Treebank_POS_tags
+   entry                                  description
+1      $                                       dollar
+2     ``                       opening quotation mark
+3     ''                       closing quotation mark
+4      (                          opening parenthesis
+5      )                          closing parenthesis
+6      ,                                        comma
+7      -                                         dash
+8      .                          sentence terminator
+9      :                            colon or ellipsis
+10    CC                    conjunction, coordinating
+11    CD                            numeral, cardinal
+12    DT                                   determiner
+13    EX                            existential there
+14    FW                                 foreign word
+15    IN    preposition or conjunction, subordinating
+16    JJ                adjective or numeral, ordinal
+17   JJR                       adjective, comparative
+18   JJS                       adjective, superlative
+19    LS                             list item marker
+20    MD                              modal auxiliary
+21    NN               noun, common, singular or mass
+22   NNP                       noun, proper, singular
+23  NNPS                         noun, proper, plural
+24   NNS                         noun, common, plural
+25   PDT                               pre-determiner
+26   POS                              genitive marker
+27   PRP                            pronoun, personal
+28  PRP$                          pronoun, possessive
+29    RB                                       adverb
+30   RBR                          adverb, comparative
+31   RBS                          adverb, superlative
+32    RP                                     particle
+33   SYM                                       symbol
+34    TO     "to" as preposition or infinitive marker
+35    UH                                 interjection
+36    VB                              verb, base form
+37   VBD                             verb, past tense
+38   VBG           verb, present participle or gerund
+39   VBN                        verb, past participle
+40   VBP verb, present tense, not 3rd person singular
+41   VBZ     verb, present tense, 3rd person singular
+42   WDT                                WH-determiner
+43    WP                                   WH-pronoun
+44   WP$                       WH-pronoun, possessive
+45   WRB                                    Wh-adverb
+
+
+```{r}
+POS = list(word = ,tag)
+words <- sapply(POS, function(x) x$word)
+tags <- sapply(POS, function(x) x$tag)
+
+# Splitting the dataset into training and testing sets
+set.seed(123) # for reproducible results
+sample_size <- floor(0.8 * length(words))
+train_indices <- sample(seq(length(words)), sample_size)
+test_indices <- setdiff(seq(length(words)), train_indices)
+
+train_words <- words[train_indices]
+train_tags <- tags[train_indices]
+test_words <- words[test_indices]
+test_tags <- tags[test_indices]
+
+```
+
