@@ -24,16 +24,11 @@ library(HMMNLP)
 words <- Penn_TreeBank$words
 tags <- Penn_TreeBank$tags
 
-# Splitting the dataset into training and testing sets
-set.seed(123) # for reproducible results
-sample_size <- floor(0.8 * length(words))
-train_indices <- sample(seq(length(words)), sample_size)
-test_indices <- setdiff(seq(length(words)), train_indices)
 
-train_words <- words[train_indices]
-train_tags <- tags[train_indices]
-test_words <- words[test_indices]
-test_tags <- tags[test_indices]
+train_words <- words[1:floor(0.8*length(words))]
+train_tags <- tags[1:floor(0.8*length(words))]
+test_words <- words[-c(1:floor(0.8*length(words)))]
+test_tags <- tags[-c(1:floor(0.8*length(words)))]
 
 ```
 
@@ -44,16 +39,11 @@ print(train_words[1:10])
 print(train_tags[1:10])
 ```
 
-## Visualize the ambiguous
-
-```{r}
-## Start Here:
-```
 
 ## calculate the tag transition count matrix
 
 ```{r}
-tags_level = NLP::Penn_Treebank_POS_tags$entry
+tags_level = unique(tags)
 # Initialize the transition count matrix
 tag_tcm = matrix(data=0,nrow = length(tags_level), ncol = length(tags_level))
 for(i in 1:(length(train_tags)-1)){
@@ -67,7 +57,7 @@ tag_tcm
 ## calculate the word emission count matrix
 
 ```{r}
-get_dictionary <-function(words){
+#get_dictionary <-function(words){
   dictionary = unique(words)
   return(dictionary)
 }
@@ -90,7 +80,7 @@ barplot(rowSums(word_ecm),names.arg = tags_level,main = "Prevelency among tags")
 $$P(t_i|t_{i-1}) = \frac{c(t_{i-1},t_i)+\alpha}{c(t_{i-1})+\alpha\cdot N}$$
 
 ```{r}
-create_transition_matrix <- function(tcm,alpha){
+#create_transition_matrix <- function(tcm,alpha){
   N = ncol(tcm)
   # Divide each row by the corresponding constant
   transition_matrix <- sweep(tcm+alpha, 1, rowSums(tcm)+alpha*N, FUN = "/")
@@ -106,65 +96,67 @@ cat("The transition probability of verb after noun",T[21,36])
 ## Compute the emission matrix
 
 ```{r}
-create_emission_matrix <- function(ecm,alpha){
-  N = ncol(ecm)
+#create_emission_matrix <- function(ecm,alpha){
+#  N = ncol(ecm)
   # Divide each row by the corresponding constant
-  emission_matrix <- sweep(ecm+alpha, 1, rowSums(ecm)+alpha*N, FUN = "/")
-  return(emission_matrix)
-}
+#  emission_matrix <- sweep(ecm+alpha, 1, rowSums(ecm)+alpha*N, FUN = "/")
+#  return(emission_matrix)
+#}
 E = create_emission_matrix(ecm = word_ecm,alpha = 0.001)
 E[,1]
 ```
 
-## Viterbi forward
+## Viterbi Algorithm
 
 ```{r}
 tag2int <- setNames(seq_along(tags_level), tags_level)
 word2int <- setNames(seq_along(dictionary),dictionary)
+v= viterbi(train_words[1:10],tags_level = tags_level,trans_p = T,emit_p = E,tag2int, word2int)
+v$path
+```
 
-viterbi <- function(words, tags_level, start_p=rep(1/length(tags_level),length(tags_level)), trans_p, emit_p) {
-  obs = word2int[words]
-  states = tag2int[tags_level]
-  V <- matrix(0, nrow = length(obs), ncol = length(states))
-  path <- matrix(0, nrow = length(obs), ncol = length(states))
 
-  # Initialize base cases (t == 0)
-  for (s in 1:length(states)) {
-    V[1, s] <- start_p[s] * emit_p[s, obs[1]]
-    path[1, s] <- s
-  }
-  
-  # Run Viterbi for t > 0
-  for (t in 2:length(obs)) {
-    newpath <- matrix(0, nrow = length(obs), ncol = length(states))
-    
-    for (s in 1:length(states)) {
-      prob <- V[t - 1, ] * trans_p[, s] * emit_p[s, obs[t]]
-      max_prob <- max(prob)
-      best_state <- which.max(prob)
-      V[t, s] <- max_prob
-      newpath[1:(t-1), s] <- path[1:(t-1), best_state]
-      newpath[t, s] <- s
-    }
-    
-    path <- newpath
-  }
-  
-  # Find the final best path
-  max_prob <- max(V[length(obs), ])
-  best_path <- path[, which.max(V[length(obs), ])]
-  
-  return(list(path = tag2int[best_path], prob = max_prob))
+## Data preperation, spliting the test data into 765 sentences
+```{r}
+# Find indices where "." appears
+period_indices <- which(test_words == ".")
+
+# Create a sequence of indices to split the array
+split_indices <- c(1, period_indices[-length(period_indices)] + 1)
+
+# Split the array based on these indices
+split_test_words <- split(test_words, findInterval(seq_along(test_words), c(split_indices, Inf)))
+
+# Remove the periods and empty arrays if needed
+split_test_words <- split_test_words[sapply(split_test_words, length) > 0]
+
+# Result
+split_test_words[[2]]
+```
+## Evaluation
+```{r}
+predicted_tags = c()
+for( i in 1:length(split_test_words)){
+  pred = viterbi(split_test_words[[i]],tags_level = tags_level,trans_p = T,emit_p = E)
+  predicted_tags = c(predicted_tags,pred$path)
 }
+true_tags = test_tags
+evaluation_hmm = evaluate_pos_tagging(predicted_tags,test_tags)
+
 ```
 
 ```{r}
-v_forward = viterbi(train_words[1:100],tags_level = tags_level,trans_p = T,emit_p = E)
-v_forward$path
+evaluation_hmm$accuracy
+evaluation_hmm$precision
+evaluation_hmm$F1
 ```
 
-## Viterbi backward
+
+## Matrix Visualization
 
 ```{r}
-
+# Plot the heatmap of confusion
+confussion_heatmap = plot_confusion_matrix_heatmap(evaluation_hmm$confusion_matrix)
+print(confussion_heatmap)
 ```
+
