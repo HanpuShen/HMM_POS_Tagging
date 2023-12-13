@@ -16,10 +16,10 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(HMMNLP)
-library(NLP)
 ```
 
 ## Train and test set splitting
+
 ```{r}
 words <- Penn_TreeBank$words
 tags <- Penn_TreeBank$tags
@@ -38,18 +38,22 @@ test_tags <- tags[test_indices]
 ```
 
 ## Visualize the first 10 sample in the trainset
+
 ```{r}
 print(train_words[1:10])
 print(train_tags[1:10])
 ```
+
 ## Visualize the ambiguous
+
 ```{r}
 ## Start Here:
 ```
 
 ## calculate the tag transition count matrix
+
 ```{r}
-tags_level = Penn_Treebank_POS_tags$entry
+tags_level = NLP::Penn_Treebank_POS_tags$entry
 # Initialize the transition count matrix
 tag_tcm = matrix(data=0,nrow = length(tags_level), ncol = length(tags_level))
 for(i in 1:(length(train_tags)-1)){
@@ -61,6 +65,7 @@ tag_tcm
 ```
 
 ## calculate the word emission count matrix
+
 ```{r}
 get_dictionary <-function(words){
   dictionary = unique(words)
@@ -75,11 +80,15 @@ for(i in 1:length(train_tags)){
   word_ecm[idx_tag,idx_word] = word_ecm[idx_tag,idx_word]+1
 }
 ```
+
 ```{r}
 barplot(rowSums(word_ecm),names.arg = tags_level,main = "Prevelency among tags")
 ```
+
 ## compute the transition matrix
+
 $$P(t_i|t_{i-1}) = \frac{c(t_{i-1},t_i)+\alpha}{c(t_{i-1})+\alpha\cdot N}$$
+
 ```{r}
 create_transition_matrix <- function(tcm,alpha){
   N = ncol(tcm)
@@ -93,7 +102,9 @@ T = create_transition_matrix(tag_tcm,0.001)
 cat("The transition probability of noun after verb",T[36,21],"\n")
 cat("The transition probability of verb after noun",T[21,36])
 ```
+
 ## Compute the emission matrix
+
 ```{r}
 create_emission_matrix <- function(ecm,alpha){
   N = ncol(ecm)
@@ -104,7 +115,9 @@ create_emission_matrix <- function(ecm,alpha){
 E = create_emission_matrix(ecm = word_ecm,alpha = 0.001)
 E[,1]
 ```
+
 ## Viterbi forward
+
 ```{r}
 tag2int <- setNames(seq_along(tags_level), tags_level)
 word2int <- setNames(seq_along(dictionary),dictionary)
@@ -150,10 +163,8 @@ v_forward = viterbi(train_words[1:100],tags_level = tags_level,trans_p = T,emit_
 v_forward$path
 ```
 
-
 ## Viterbi backward
-```{r}
-https://github.com/HanpuShen/HMM_SOP_Tagging
-https://github.com/HanpuShen/HMM_POS_tagging
-```
 
+```{r}
+
+```
