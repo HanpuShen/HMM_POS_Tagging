@@ -58,9 +58,9 @@ tag_tcm
 
 ```{r}
 #get_dictionary <-function(words){
-  dictionary = unique(words)
-  return(dictionary)
-}
+#  dictionary = unique(words)
+#  return(dictionary)
+#}
 
 dictionary = get_dictionary(words)
 word_ecm = matrix(data=0, nrow=length(tags_level), ncol = length(dictionary))
@@ -81,11 +81,11 @@ $$P(t_i|t_{i-1}) = \frac{c(t_{i-1},t_i)+\alpha}{c(t_{i-1})+\alpha\cdot N}$$
 
 ```{r}
 #create_transition_matrix <- function(tcm,alpha){
-  N = ncol(tcm)
-  # Divide each row by the corresponding constant
-  transition_matrix <- sweep(tcm+alpha, 1, rowSums(tcm)+alpha*N, FUN = "/")
-  return(transition_matrix)
-}
+#  N = ncol(tcm)
+#  # Divide each row by the corresponding constant
+#  transition_matrix <- sweep(tcm+alpha, 1, rowSums(tcm)+alpha*N, FUN = "/")
+#  return(transition_matrix)
+#}
 
 T = create_transition_matrix(tag_tcm,0.001)
 ## The transition probability of noun after verb
@@ -111,7 +111,7 @@ E[,1]
 ```{r}
 tag2int <- setNames(seq_along(tags_level), tags_level)
 word2int <- setNames(seq_along(dictionary),dictionary)
-v= viterbi(train_words[1:10],tags_level = tags_level,trans_p = T,emit_p = E,tag2int, word2int)
+v= viterbi(train_words[1:10],tags_level = tags_level,trans_p = T,emit_p = E,tag2int=tag2int,word2int=word2int)
 v$path
 ```
 
@@ -137,7 +137,7 @@ split_test_words[[2]]
 ```{r}
 predicted_tags = c()
 for( i in 1:length(split_test_words)){
-  pred = viterbi(split_test_words[[i]],tags_level = tags_level,trans_p = T,emit_p = E)
+  pred = viterbi(split_test_words[[i]],tags_level = tags_level,trans_p = T,emit_p = E,tag2int = tag2int,word2int = word2int)
   predicted_tags = c(predicted_tags,pred$path)
 }
 true_tags = test_tags
